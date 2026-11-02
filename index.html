@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comprar casa: gastos e hipoteca con el euríbor de hoy</title>
+<meta name="description" content="Calcula cuánto dinero necesitas para comprar casa en España: entrada, ITP o IVA por comunidad, notaría, registro y la hipoteca a tipo fijo, variable o mixto con el euríbor de hoy. Cuota, intereses, esfuerzo y cuánto te puedes permitir.">
+<link rel="canonical" href="https://adrianezd.github.io/comprar-casa/">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e7c66">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Comprar casa: gastos e hipoteca">
+<meta property="og:description" content="Entrada, impuestos, gastos y cuota fija, variable o mixta con el euríbor de hoy.">
+<meta property="og:url" content="https://adrianezd.github.io/comprar-casa/">
+<meta property="og:locale" content="es_ES">
+<meta property="og:image" content="https://adrianezd.github.io/comprar-casa/favicon.svg">
+<meta name="keywords" content="gastos comprar casa, calculadora hipoteca, euribor hoy, hipoteca fija variable mixta, ITP por comunidad, cuanto necesito para comprar un piso">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="adrianezd">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="style.css?v=202611022100">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Comprar casa: gastos e hipoteca","url":"https://adrianezd.github.io/comprar-casa/","description":"Calculadora de los gastos de comprar vivienda en España y de la hipoteca a tipo fijo, variable o mixto con el euríbor del día.","inLanguage":"es","applicationCategory":"FinanceApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"adrianezd"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Cuánto dinero necesito ahorrado para comprar casa?","acceptedAnswer":{"@type":"Answer","text":"Normalmente el 20 % del precio de entrada, porque los bancos financian hasta el 80 %, más entre un 8 y un 12 % en impuestos y gastos de la compra."}},{"@type":"Question","name":"¿De dónde sale el euríbor?","acceptedAnswer":{"@type":"Answer","text":"El valor diario se toma de euribor-rates.eu y la media mensual, que es la que usan las hipotecas al revisarse, del Banco Central Europeo. Se actualiza cada día laborable."}},{"@type":"Question","name":"¿Qué gastos paga el banco?","acceptedAnswer":{"@type":"Answer","text":"Desde la ley hipotecaria de 2019 el banco paga la notaría, el registro y la gestoría de la hipoteca y el impuesto de actos jurídicos documentados de la hipoteca. Tú pagas la tasación y los gastos de la compraventa."}}]}]}</script>
+</head>
+<body>
+<header class="top">
+  <h1>🏠 Comprar casa</h1>
+  <p class="sub">Cuánto necesitas, cuánto pagarás y cuánto te puedes permitir</p>
+</header>
+<main>
+  <section class="tarjeta euribor" aria-labelledby="h-eur">
+    <div class="eur-cab">
+      <div>
+        <div class="etq" id="h-eur">Euríbor a 12 meses</div>
+        <div class="eur-valor"><b id="eurHoy">–</b> <span id="eurHoyFecha" class="sub"></span></div>
+        <p class="sub" id="eurMedia"></p>
+      </div>
+      <div class="eur-var" id="eurVar"></div>
+    </div>
+    <svg id="eurGrafica" viewBox="0 0 700 130" role="img" aria-label="Euríbor de los últimos tres años"></svg>
+  </section>
+
+  <section class="tarjeta">
+    <h2>La casa</h2>
+    <div class="seg" data-seg="estado" role="group" aria-label="Tipo de vivienda">
+      <button type="button" data-val="segunda" class="on">Segunda mano</button>
+      <button type="button" data-val="nueva">Obra nueva</button>
+    </div>
+    <div class="form">
+      <label>Precio, € <input id="precio" type="number" value="250000" step="5000" min="0" inputmode="numeric"></label>
+      <label>Comunidad autónoma <select id="ccaa"></select></label>
+      <label>Entrada, % del precio <input id="entrada" type="number" value="20" step="1" min="0" max="100"><small id="entradaEur"></small></label>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>La hipoteca</h2>
+    <div class="seg" data-seg="tipo" role="group" aria-label="Tipo de interés">
+      <button type="button" data-val="fijo" class="on">Fijo</button>
+      <button type="button" data-val="variable">Variable</button>
+      <button type="button" data-val="mixto">Mixto</button>
+    </div>
+    <div class="form">
+      <label>Plazo, años <input id="plazo" type="number" value="30" min="5" max="40"></label>
+      <label data-tipo="fijo">Interés fijo, TIN % <input id="tinFijo" type="number" value="3.2" step="0.05" min="0"></label>
+      <label data-tipo="variable">Primer año, TIN % <input id="tinInicial" type="number" value="2.8" step="0.05" min="0"></label>
+      <label data-tipo="mixto">Años a tipo fijo <input id="aniosMixto" type="number" value="10" min="1" max="30"></label>
+      <label data-tipo="mixto">Interés esos años, TIN % <input id="tinMixto" type="number" value="2.9" step="0.05" min="0"></label>
+      <label data-tipo="variable mixto">Diferencial sobre el euríbor, % <input id="diferencial" type="number" value="0.6" step="0.05" min="0"></label>
+    </div>
+    <div class="bloque" data-tipo="variable mixto">
+      <div class="form">
+        <label>Euríbor que supones, % <input id="eurFuturo" type="number" step="0.05"><small>Empieza con el de hoy. Cámbialo para ver otros escenarios.</small></label>
+      </div>
+      <div class="etq espacio">Cómo evoluciona después</div>
+      <div class="seg" data-seg="tendencia" role="group" aria-label="Evolución del euríbor">
+        <button type="button" data-val="igual" class="on">Se queda igual</button>
+        <button type="button" data-val="sube">Sube un poco cada año</button>
+        <button type="button" data-val="baja">Baja un poco cada año</button>
+      </div>
+    </div>
+    <details class="mas">
+      <summary>Seguros, comisiones y amortizar antes</summary>
+      <div class="form">
+        <label>Seguro de vida, €/año <input id="segVida" type="number" value="300" step="10" min="0"></label>
+        <label>Seguro de hogar, €/año <input id="segHogar" type="number" value="250" step="10" min="0"></label>
+        <label>Comisión de apertura, % <input id="apertura" type="number" value="0" step="0.1" min="0"></label>
+        <label>Amortizar cada año, € <input id="extra" type="number" value="0" step="500" min="0"></label>
+      </div>
+      <div class="etq espacio">Lo que amortices sirve para</div>
+      <div class="seg" data-seg="reducir" role="group" aria-label="Amortizar">
+        <button type="button" data-val="plazo" class="on">Acabar antes</button>
+        <button type="button" data-val="cuota">Pagar menos cuota</button>
+      </div>
+    </details>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Gastos de la compra</h2>
+    <p class="sub peque">Se calculan solos. Escribe una cifra si ya tienes un presupuesto.</p>
+    <div class="form">
+      <label><span id="impEtq">ITP</span> <input id="impuesto" type="number" step="50" min="0"><small id="impTxt"></small></label>
+      <label data-estado="nueva">Actos jurídicos documentados, € <input id="ajd" type="number" step="50" min="0"></label>
+      <label>Notaría, € <input id="notaria" type="number" step="50" min="0"></label>
+      <label>Registro, € <input id="registro" type="number" step="50" min="0"></label>
+      <label>Gestoría, € <input id="gestoria" type="number" step="50" min="0"></label>
+      <label>Tasación, € <input id="tasacion" type="number" step="50" min="0"></label>
+      <label>Agencia, € <input id="agencia" type="number" value="0" step="500" min="0"></label>
+      <label>Reforma, mudanza y muebles, € <input id="reforma" type="number" value="0" step="500" min="0"></label>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Tener la casa</h2>
+    <div class="form">
+      <label>IBI, €/año <input id="ibi" type="number" step="10" min="0"></label>
+      <label>Comunidad, €/mes <input id="comunidad" type="number" value="60" step="5" min="0"></label>
+      <label>Arreglos y mantenimiento, €/año <input id="mant" type="number" step="50" min="0"></label>
+    </div>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Tu bolsillo</h2>
+    <div class="form">
+      <label>Ingresos netos del hogar, €/mes <input id="ingresos" type="number" value="3000" step="100" min="0"></label>
+      <label>Ahorros que puedes usar, € <input id="ahorros" type="number" value="80000" step="1000" min="0"></label>
+    </div>
+  </section>
+
+  <section class="tarjeta resumen">
+    <div class="etq">Dinero que necesitas para comprar</div>
+    <div class="grande" id="firma">–</div>
+    <p class="sub" id="firmaTxt"></p>
+    <div class="barra" id="firmaBarra"></div>
+    <ul class="leyenda" id="firmaLeyenda"></ul>
+  </section>
+
+  <section class="cifras">
+    <div class="tarjeta"><div class="etq">Cuota de hipoteca</div><b id="cuota">–</b><span id="cuotaTxt">al mes</span></div>
+    <div class="tarjeta"><div class="etq">Coste real al mes</div><b id="mes">–</b><span>con seguros, IBI y comunidad</span></div>
+    <div class="tarjeta"><div class="etq">Esfuerzo</div><b id="esfuerzo">–</b><span id="esfuerzoTxt">de tus ingresos</span></div>
+    <div class="tarjeta"><div class="etq">Intereses</div><b id="intereses">–</b><span id="interesesTxt">en toda la hipoteca</span></div>
+  </section>
+
+  <section class="tarjeta" id="avisos" hidden></section>
+
+  <section class="tarjeta">
+    <h2>Fijo, variable o mixto</h2>
+    <p class="sub peque">Las tres con tus datos y el euríbor que supones.</p>
+    <div class="tabla-scroll"><table id="comparar"></table></div>
+    <p class="sub peque" id="estres"></p>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Lo que pagas cada año</h2>
+    <svg id="grafica" viewBox="0 0 700 260" role="img" aria-label="Capital e intereses pagados cada año"></svg>
+    <div class="leyenda-graf">
+      <span><i style="background:var(--capital)"></i>Capital</span><span><i style="background:var(--interes)"></i>Intereses</span><span id="legExtra" hidden><i style="background:var(--extra)"></i>Amortizado aparte</span>
+    </div>
+    <details class="mas">
+      <summary>Tabla año a año</summary>
+      <div class="tabla-scroll"><table id="tabla"></table></div>
+    </details>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Cuánto te puedes permitir</h2>
+    <p class="sub peque">Con tus ahorros y tus ingresos, entrada del 20 % y una cuota que no pase del 35 % de lo que ganas.</p>
+    <div class="grande medio" id="max">–</div>
+    <p class="sub" id="maxTxt"></p>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Coste total</h2>
+    <div class="tabla-scroll"><table id="total"></table></div>
+  </section>
+
+  <section class="texto">
+    <h2>Cómo se calcula</h2>
+    <p>En segunda mano pagas el ITP de tu comunidad, con sus tramos por precio. En obra nueva pagas IVA del 10 % (IGIC en Canarias) y actos jurídicos documentados. Son los tipos generales: muchas comunidades tienen tipos reducidos para jóvenes, familias numerosas o vivienda protegida, así que si es tu caso escribe tu cifra.</p>
+    <p>Desde 2019 el banco paga la notaría, el registro y la gestoría de la hipoteca. Tú pagas la notaría y el registro de la compraventa y la tasación. Las cifras de notaría y registro son estimaciones según el precio.</p>
+    <p>La cuota usa el sistema francés. En variable y mixto se revisa una vez al año con euríbor más diferencial, y nunca baja de cero. El euríbor del día viene de euribor-rates.eu y la media mensual, que es la que usan los bancos al revisar, del Banco Central Europeo.</p>
+    <p>Es una estimación orientativa, no una oferta ni un consejo financiero. La FEIN que te dé el banco es la que manda.</p>
+  </section>
+</main>
+<footer>Hecho por adrianezd. Lo que escribes se queda en tu móvil.</footer>
+<section class="seo-faq"><h2>Preguntas frecuentes</h2><details><summary>¿Cuánto dinero necesito ahorrado para comprar casa?</summary><p>Normalmente el 20 % del precio de entrada, porque los bancos financian hasta el 80 %, más entre un 8 y un 12 % en impuestos y gastos de la compra.</p></details><details><summary>¿De dónde sale el euríbor?</summary><p>El valor diario se toma de euribor-rates.eu y la media mensual, que es la que usan las hipotecas al revisarse, del Banco Central Europeo. Se actualiza cada día laborable.</p></details><details><summary>¿Qué gastos paga el banco?</summary><p>Desde la ley hipotecaria de 2019 el banco paga la notaría, el registro y la gestoría de la hipoteca y el impuesto de actos jurídicos documentados de la hipoteca. Tú pagas la tasación y los gastos de la compraventa.</p></details></section>
+<nav class="seo-red">Más webs gratis: <a href="https://adrianezd.github.io/portal/">Todas</a> · <a href="https://adrianezd.github.io/alquilar-o-comprar/">Alquilar o comprar</a> · <a href="https://adrianezd.github.io/sueldo-neto/">Sueldo neto</a> · <a href="https://adrianezd.github.io/precio-luz-hoy/">Precio de la luz</a> · <a href="https://adrianezd.github.io/proyecciones-vivienda/">Precio de la vivienda</a> · <a href="https://adrianezd.github.io/calendario-laboral/">Calendario laboral</a></nav>
+<script src="script.js?v=202611022100"></script>
+</body>
+</html>

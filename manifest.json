@@ -1,0 +1,12 @@
+{
+  "name": "Comprar casa: gastos e hipoteca",
+  "short_name": "Comprar casa",
+  "description": "Gastos de comprar vivienda en España e hipoteca fija, variable o mixta con el euríbor de hoy.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e7c66",
+  "theme_color": "#0e7c66",
+  "lang": "es",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
