@@ -27,7 +27,7 @@ var CCAA = [
 // Por si no carga euribor.json.
 var EUR = { diario: [{ fecha: '2026-10-30', valor: 3.306 }], mensual: [{ mes: '2026-10', valor: 3.239 }] };
 
-var S = { estado: 'segunda', tipo: 'fijo', tendencia: 'igual', reducir: 'plazo' };
+var S = { estado: 'segunda', tipo: 'fijo', tendencia: 'igual', reducir: 'plazo', vista: 'anios' };
 var CLAVE = 'comprar-casa-v1';
 var COLORES = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)', 'var(--c8)', 'var(--muted)'];
 var TIPOS = { fijo: 'Fijo', variable: 'Variable', mixto: 'Mixto' };
@@ -88,22 +88,24 @@ function tasa(o, tipo, m, shift) {
 function sim(o, tipo, shift, deudaInicial, sinExtra) {
   shift = shift || 0;
   var deuda = deudaInicial == null ? o.deuda : deudaInicial, n = o.plazo * 12, rest = n;
-  var cuota = 0, prev = null, anios = [], r = { int: 0, pag: 0, extra: 0, meses: 0, anios: anios };
+  var cuota = 0, prev = null, anios = [], filas = [], r = { int: 0, pag: 0, extra: 0, meses: 0, anios: anios, filas: filas };
   var extra = sinExtra ? 0 : o.extra;
   for (var m = 0; m < n && deuda > 0.005; m++) {
     var y = Math.floor(m / 12), t = tasa(o, tipo, m, shift), i = t / 1200;
     if (t !== prev) { cuota = frances(deuda, i, rest); prev = t; }
-    var a = anios[y] || (anios[y] = { anio: y + 1, cuota: cuota, tasa: t, int: 0, cap: 0, extra: 0, deuda: 0 });
+    var a = anios[y] || (anios[y] = { anio: y + 1, cuota: cuota, tasa: t, int: 0, cap: 0, extra: 0, deuda: 0, n: 0 });
     var inte = deuda * i, cap = Math.min(deuda, cuota - inte);
     deuda -= cap; rest--;
-    a.int += inte; a.cap += cap; r.int += inte; r.pag += inte + cap; r.meses++;
+    a.int += inte; a.cap += cap; a.n++; r.int += inte; r.pag += inte + cap; r.meses++;
+    var fila = { mes: m + 1, tasa: t, cuota: inte + cap, int: inte, cap: cap, extra: 0, deuda: 0 };
+    filas.push(fila);
     if ((m + 1) % 12 === 0 && extra > 0 && deuda > 0.005) {
       var e = Math.min(extra, deuda);
-      deuda -= e; a.extra += e; r.extra += e; r.pag += e;
+      deuda -= e; a.extra += e; r.extra += e; r.pag += e; fila.extra = e;
       if (S.reducir === 'cuota') cuota = frances(deuda, i, rest);
       else rest = Math.min(rest, nper(deuda, i, cuota));
     }
-    a.deuda = Math.max(0, deuda);
+    a.deuda = fila.deuda = Math.max(0, deuda);
   }
   r.cuota0 = anios.length ? anios[0].cuota : 0;
   var revision = tipo === 'variable' ? 1 : tipo === 'mixto' ? o.aniosMixto : -1;
@@ -227,8 +229,9 @@ function pintar() {
   $('firma').textContent = eur(necesitas);
   var falta = necesitas - o.ahorros;
   var gastosSinReforma = suma(g.filter(function (x) { return x.k !== 'Reforma y muebles'; }));
-  $('firmaTxt').innerHTML = (falta > 0 ? '<span class="alto">Te faltan ' + eur(falta) + '</span>' : '<span class="bien">Con tus ahorros te sobran ' + eur(-falta) + '</span>') +
-    '. Impuestos y gastos: ' + pct(o.precio ? gastosSinReforma / o.precio * 100 : 0, 1) + ' del precio.';
+  $('firmaTxt').innerHTML = 'entrada, impuestos y gastos. Los impuestos y gastos son el ' + pct(o.precio ? gastosSinReforma / o.precio * 100 : 0, 1) + ' del precio. ' +
+    (falta > 0 ? '<span class="alto">Con tus ahorros te faltan ' + eur(falta) + '.</span>' : '<span class="bien">Con tus ahorros te sobran ' + eur(-falta) + '.</span>');
+  $('pegFirma').textContent = eur(necesitas);
   var partes = [{ k: 'Entrada', v: o.entrada }].concat(g);
   $('firmaBarra').innerHTML = partes.map(function (p, k) { return p.v > 0 ? '<div style="flex:' + p.v + ';background:' + COLORES[k % COLORES.length] + '" title="' + p.k + ': ' + eur(p.v) + '"></div>' : ''; }).join('');
   $('firmaLeyenda').innerHTML = partes.map(function (p, k) { return '<li><i style="background:' + COLORES[k % COLORES.length] + '"></i><span>' + p.k + '</span><b>' + eur(p.v) + '</b></li>'; }).join('');
@@ -243,7 +246,9 @@ function pintar() {
   $('cuota').textContent = hayHip ? eur(r.cuota0) : '0 €';
   $('cuotaTxt').textContent = !hayHip ? 'sin hipoteca' : S.tipo === 'fijo' ? 'al mes, siempre igual' :
     (S.tipo === 'variable' ? 'el primer año' : 'los ' + o.aniosMixto + ' primeros años') + (r.cuotaRev != null ? ', luego ' + eur(r.cuotaRev) : '');
-  $('mes').textContent = eur(r.cuota0 + fijosMes);
+  desglose(o, r, ibi, mant);
+  $('banco').textContent = eur(r.pag);
+  $('bancoTxt').textContent = hayHip ? eur(o.deuda) + ' prestados y ' + eur(r.int) + ' de intereses' : 'sin hipoteca';
   var esf = o.ingresos > 0 ? r.cuota0 / o.ingresos * 100 : 0, esfMax = o.ingresos > 0 ? r.cuotaMax / o.ingresos * 100 : 0;
   $('esfuerzo').textContent = o.ingresos > 0 ? pct(esf, 0) : '–';
   $('esfuerzo').className = esf <= 30 ? 'bien' : esf <= 35 ? 'justo' : 'alto';
@@ -286,7 +291,7 @@ function pintar() {
   }
 
   grafica(r.anios);
-  tabla(r.anios);
+  tabla(r, fijosMes);
 
   // Máximo
   var mx = maximo(o, S.tipo);
@@ -295,20 +300,26 @@ function pintar() {
     mx.ahorro <= mx.sueldo ? 'Te limitan los ahorros. Por sueldo podrías llegar a ' + eur(redondea(mx.sueldo, 1000)) + '.' :
       'Te limita el sueldo. Con tus ahorros llegarías a ' + eur(redondea(mx.ahorro, 1000)) + '.';
 
-  // Coste total
-  var seg = (o.segVida + o.segHogar) * aniosReal, tener = (ibi + mant + o.comunidad * 12) * aniosReal;
-  var impGastos = gastosTot - v('reforma');
-  var lineas = [['Precio de la casa', o.precio], ['Impuestos y gastos de la compra', impGastos], ['Intereses de la hipoteca', r.int]];
-  if (v('reforma') > 0) lineas.push(['Reforma y muebles', v('reforma')]);
-  var base = suma(lineas.map(function (l) { return { v: l[1] }; }));
-  var t = '<tbody>' + lineas.map(function (l) { return '<tr><td>' + l[0] + '</td><td class="n">' + eur(l[1]) + '</td></tr>'; }).join('') +
-    '<tr class="suma"><td>Lo que te cuesta la casa</td><td class="n">' + eur(base) + '</td></tr>';
-  if (hayHip) {
-    t += '<tr><td>Seguros durante la hipoteca</td><td class="n">' + eur(seg) + '</td></tr>' +
-      '<tr><td>IBI, comunidad y arreglos en esos años</td><td class="n">' + eur(tener) + '</td></tr>' +
-      '<tr class="suma"><td>Todo en ' + num(aniosReal, aniosReal % 1 ? 1 : 0) + ' años</td><td class="n">' + eur(base + seg + tener) + '</td></tr>';
-  }
+  // Todo lo que pagas
+  var horiz = hayHip ? aniosReal : o.plazo, hTxt = num(horiz, horiz % 1 ? 1 : 0);
+  var grupos = [
+    { g: 'Al comprar', l: [{ k: 'Entrada', v: o.entrada }].concat(g) },
+    { g: 'Hipoteca', l: hayHip ? [{ k: 'Capital que devuelves', v: o.deuda }, { k: 'Intereses', v: r.int }] : [] },
+    { g: 'En ' + hTxt + ' años de tener la casa', l: [
+      { k: 'Seguro de vida', v: hayHip ? o.segVida * horiz : 0 }, { k: 'Seguro de hogar', v: o.segHogar * horiz },
+      { k: 'IBI', v: ibi * horiz }, { k: 'Comunidad', v: o.comunidad * 12 * horiz }, { k: 'Arreglos y mantenimiento', v: mant * horiz }] }
+  ];
+  var granTotal = 0, t = '<thead><tr><th></th><th class="n">Total</th></tr></thead><tbody>';
+  grupos.forEach(function (gr) {
+    var l = gr.l.filter(function (x) { return x.v > 0; });
+    if (!l.length) return;
+    var st = suma(l); granTotal += st;
+    t += '<tr class="grupo"><td>' + gr.g + '</td><td class="n">' + eur(st) + '</td></tr>' +
+      l.map(function (x) { return '<tr><td>' + x.k + '</td><td class="n">' + eur(x.v) + '</td></tr>'; }).join('');
+  });
+  t += '<tr class="suma"><td>Total</td><td class="n">' + eur(granTotal) + '</td></tr>';
   $('total').innerHTML = t + '</tbody>';
+  $('totalTxt').textContent = 'Todo junto durante ' + (hayHip ? 'los ' + hTxt + ' años de hipoteca' : hTxt + ' años') + '. Por una casa de ' + eur(o.precio) + ' acabas pagando ' + eur(granTotal) + (o.precio ? ', ' + num(granTotal / o.precio, 2) + ' veces su precio.' : '.');
   guardar();
 }
 
@@ -341,12 +352,64 @@ function grafica(anios) {
   $('legExtra').hidden = !anios.some(function (a) { return a.extra > 0; });
 }
 
-function tabla(anios) {
-  var extra = anios.some(function (a) { return a.extra > 0; });
-  $('tabla').innerHTML = '<thead><tr><th>Año</th><th class="n">Interés</th><th class="n">Cuota</th><th class="n">Capital</th><th class="n">Intereses</th>' + (extra ? '<th class="n">Amortizado</th>' : '') + '<th class="n">Te queda</th></tr></thead><tbody>' +
-    anios.map(function (a) {
-      return '<tr><td>' + a.anio + '</td><td class="n">' + pct(a.tasa, 2) + '</td><td class="n">' + eur(a.cuota) + '</td><td class="n">' + eur(a.cap) + '</td><td class="n">' + eur(a.int) + '</td>' + (extra ? '<td class="n">' + eur(a.extra) + '</td>' : '') + '<td class="n">' + eur(a.deuda) + '</td></tr>';
-    }).join('') + '</tbody>';
+function tabla(r, fijosMes) {
+  var extra = r.extra > 0, h, filas;
+  var cab = '<th class="n">Interés</th><th class="n">Cuota</th><th class="n">Capital</th><th class="n">Intereses</th>' + (extra ? '<th class="n">Amortizado</th>' : '') + '<th class="n">Con gastos</th><th class="n">Te queda</th>';
+  var celdas = function (tasa, cuota, cap, inte, ex, deuda) {
+    return '<td class="n">' + pct(tasa, 2) + '</td><td class="n">' + eur(cuota) + '</td><td class="n">' + eur(cap) + '</td><td class="n">' + eur(inte) + '</td>' +
+      (extra ? '<td class="n">' + (ex ? eur(ex) : '') + '</td>' : '') + '<td class="n">' + eur(cuota + fijosMes) + '</td><td class="n">' + eur(deuda) + '</td>';
+  };
+  if (S.vista === 'meses') {
+    h = '<th>Mes</th>' + cab;
+    filas = r.filas.map(function (f) {
+      var a = Math.ceil(f.mes / 12), m = (f.mes - 1) % 12 + 1;
+      return '<tr' + (m === 1 ? ' class="inicio"' : '') + '><td>Año ' + a + ', mes ' + m + '</td>' + celdas(f.tasa, f.cuota, f.cap, f.int, f.extra, f.deuda) + '</tr>';
+    });
+  } else {
+    h = '<th>Año</th>' + cab.replace('<th class="n">Cuota</th>', '<th class="n">Cuota al mes</th>').replace('Con gastos', 'Al mes con gastos').replace('<th class="n">Capital</th><th class="n">Intereses</th>', '<th class="n">Capital del año</th><th class="n">Intereses del año</th>');
+    filas = r.anios.map(function (a) {
+      return '<tr><td>' + a.anio + '</td>' + celdas(a.tasa, (a.cap + a.int) / a.n, a.cap, a.int, a.extra, a.deuda) + '</tr>';
+    });
+  }
+  $('tabla').innerHTML = '<thead><tr>' + h + '</tr></thead><tbody>' + filas.join('') + '</tbody>';
+}
+
+// Desglose de un año: lo que se paga al mes y al año por cada concepto.
+function desglose(o, r, ibi, mant) {
+  var n = r.anios.length, inp = $('anioVer');
+  inp.max = Math.max(1, n);
+  $('anioCaja').hidden = n <= 1;
+  var y = Math.min(Math.max(1, Math.round(+inp.value) || 1), Math.max(1, n));
+  inp.value = y; $('anioVal').textContent = y;
+  var a = r.anios[y - 1], nm = a ? a.n : 12;
+  var grupos = [
+    { g: 'Hipoteca', l: [{ k: 'Intereses para el banco', m: a ? a.int / nm : 0, y: a ? a.int : 0, c: 'var(--interes)' }, { k: 'Capital que devuelves', m: a ? a.cap / nm : 0, y: a ? a.cap : 0, c: 'var(--capital)' }] },
+    { g: 'Seguros', l: [{ k: 'Seguro de vida', m: a ? o.segVida / 12 : 0, y: a ? o.segVida : 0, c: 'var(--c3)' }, { k: 'Seguro de hogar', m: o.segHogar / 12, y: o.segHogar, c: 'var(--c7)' }] },
+    { g: 'La casa', l: [{ k: 'IBI', m: ibi / 12, y: ibi, c: 'var(--c4)' }, { k: 'Comunidad', m: o.comunidad, y: o.comunidad * 12, c: 'var(--c5)' }, { k: 'Arreglos y mantenimiento', m: mant / 12, y: mant, c: 'var(--c6)' }] }
+  ];
+  var tot = 0, totY = 0, items = [], t = '<thead><tr><th></th><th class="n">Al mes</th><th class="n">Al año</th></tr></thead><tbody>';
+  grupos.forEach(function (gr) {
+    var l = gr.l.filter(function (x) { return x.m > 0.004; });
+    if (!l.length) return;
+    var sm = l.reduce(function (s, x) { return s + x.m; }, 0), sy = l.reduce(function (s, x) { return s + x.y; }, 0);
+    tot += sm; totY += sy; items = items.concat(l);
+    t += '<tr class="grupo"><td>' + gr.g + '</td><td class="n">' + eur(sm) + '</td><td class="n">' + eur(sy) + '</td></tr>' +
+      l.map(function (x) { return '<tr><td><i style="background:' + x.c + '"></i>' + x.k + '</td><td class="n">' + eur(x.m) + '</td><td class="n">' + eur(x.y) + '</td></tr>'; }).join('');
+  });
+  t += '<tr class="suma"><td>Total</td><td class="n">' + eur(tot) + '</td><td class="n">' + eur(totY) + '</td></tr>';
+  $('mesTabla').innerHTML = t + '</tbody>';
+  $('mesTotal').textContent = eur(tot);
+  $('pegMes').textContent = eur(tot);
+  var cuotaMes = a ? (a.int + a.cap) / nm : 0;
+  $('mesTxt').textContent = n ? 'al mes el año ' + y + ': ' + eur(cuotaMes) + ' de hipoteca y ' + eur(tot - cuotaMes) + ' de seguros y gastos de la casa' : 'al mes en seguros y gastos de la casa';
+  $('mesBarra').innerHTML = items.map(function (x) { return '<div style="flex:' + x.m + ';background:' + x.c + '" title="' + x.k + ': ' + eur(x.m) + '"></div>'; }).join('');
+  var nota = '';
+  if (a) {
+    nota = 'El año ' + y + ', de cada 100 € de cuota ' + num(a.int / (a.int + a.cap) * 100) + ' son intereses y ' + num(a.cap / (a.int + a.cap) * 100) + ' van a quitar deuda. ';
+    nota += 'Interés ese año: ' + pct(a.tasa, 2) + '. Al acabarlo te quedan ' + eur(a.deuda) + ' por pagar.';
+    if (a.extra) nota += ' Además amortizas ' + eur(a.extra) + ' aparte.';
+  }
+  $('mesNota').textContent = nota;
 }
 
 // ---------- Guardado local ----------
@@ -389,6 +452,17 @@ document.querySelectorAll('.seg').forEach(function (grupo) {
 document.querySelectorAll('main input, main select').forEach(function (el) { el.addEventListener('input', pintar); });
 pintarEuribor();
 pintar();
+// En el móvil, una barra abajo con lo que pagas al mes mientras rellenas el formulario.
+if ('IntersectionObserver' in window) {
+  var vistos = {};
+  document.querySelector('footer').id = 'pie';
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { vistos[e.target.id] = e.isIntersecting; });
+    $('pegajoso').classList.toggle('fuera', !!(vistos.desglose || vistos.pie));
+  });
+  io.observe($('desglose'));
+  io.observe($('pie'));
+}
 var anchoPrev = window.innerWidth;
 window.addEventListener('resize', function () {
   if (Math.abs(window.innerWidth - anchoPrev) < 30) return;

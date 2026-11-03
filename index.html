@@ -19,13 +19,13 @@
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="adrianezd">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="style.css?v=202611022100">
+<link rel="stylesheet" href="style.css?v=202611031000">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Comprar casa: gastos e hipoteca","url":"https://adrianezd.github.io/comprar-casa/","description":"Calculadora de los gastos de comprar vivienda en España y de la hipoteca a tipo fijo, variable o mixto con el euríbor del día.","inLanguage":"es","applicationCategory":"FinanceApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"adrianezd"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Cuánto dinero necesito ahorrado para comprar casa?","acceptedAnswer":{"@type":"Answer","text":"Normalmente el 20 % del precio de entrada, porque los bancos financian hasta el 80 %, más entre un 8 y un 12 % en impuestos y gastos de la compra."}},{"@type":"Question","name":"¿De dónde sale el euríbor?","acceptedAnswer":{"@type":"Answer","text":"El valor diario se toma de euribor-rates.eu y la media mensual, que es la que usan las hipotecas al revisarse, del Banco Central Europeo. Se actualiza cada día laborable."}},{"@type":"Question","name":"¿Qué gastos paga el banco?","acceptedAnswer":{"@type":"Answer","text":"Desde la ley hipotecaria de 2019 el banco paga la notaría, el registro y la gestoría de la hipoteca y el impuesto de actos jurídicos documentados de la hipoteca. Tú pagas la tasación y los gastos de la compraventa."}}]}]}</script>
 </head>
 <body>
 <header class="top">
   <h1>🏠 Comprar casa</h1>
-  <p class="sub">Cuánto necesitas, cuánto pagarás y cuánto te puedes permitir</p>
+  <p class="sub">Todos los gastos, los intereses y lo que pagas cada mes</p>
 </header>
 <main>
   <section class="tarjeta euribor" aria-labelledby="h-eur">
@@ -127,22 +127,52 @@
     </div>
   </section>
 
-  <section class="tarjeta resumen">
-    <div class="etq">Dinero que necesitas para comprar</div>
-    <div class="grande" id="firma">–</div>
-    <p class="sub" id="firmaTxt"></p>
-    <div class="barra" id="firmaBarra"></div>
-    <ul class="leyenda" id="firmaLeyenda"></ul>
+  <section class="tarjeta" id="desglose">
+    <h2>Lo que pagas cada mes</h2>
+    <div class="total-mes"><b id="mesTotal">–</b><span id="mesTxt"></span></div>
+    <div class="barra" id="mesBarra"></div>
+    <div class="tabla-scroll"><table class="desglose" id="mesTabla"></table></div>
+    <label class="anio-ver" id="anioCaja">Ver el año <b id="anioVal">1</b><input id="anioVer" type="range" min="1" max="30" value="1"></label>
+    <p class="sub peque nota" id="mesNota"></p>
   </section>
 
   <section class="cifras">
     <div class="tarjeta"><div class="etq">Cuota de hipoteca</div><b id="cuota">–</b><span id="cuotaTxt">al mes</span></div>
-    <div class="tarjeta"><div class="etq">Coste real al mes</div><b id="mes">–</b><span>con seguros, IBI y comunidad</span></div>
     <div class="tarjeta"><div class="etq">Esfuerzo</div><b id="esfuerzo">–</b><span id="esfuerzoTxt">de tus ingresos</span></div>
     <div class="tarjeta"><div class="etq">Intereses</div><b id="intereses">–</b><span id="interesesTxt">en toda la hipoteca</span></div>
+    <div class="tarjeta"><div class="etq">Pagas al banco</div><b id="banco">–</b><span id="bancoTxt">capital e intereses</span></div>
   </section>
 
   <section class="tarjeta" id="avisos" hidden></section>
+
+  <section class="tarjeta">
+    <h2>Lo que pagas al comprar</h2>
+    <div class="total-mes"><b id="firma">–</b><span id="firmaTxt"></span></div>
+    <div class="barra" id="firmaBarra"></div>
+    <ul class="leyenda" id="firmaLeyenda"></ul>
+  </section>
+
+  <section class="tarjeta">
+    <h2>La hipoteca año a año</h2>
+    <svg id="grafica" viewBox="0 0 700 260" role="img" aria-label="Capital e intereses pagados cada año"></svg>
+    <div class="leyenda-graf">
+      <span><i style="background:var(--capital)"></i>Capital</span><span><i style="background:var(--interes)"></i>Intereses</span><span id="legExtra" hidden><i style="background:var(--extra)"></i>Amortizado aparte</span>
+    </div>
+    <details class="mas">
+      <summary>Tabla de pagos</summary>
+      <div class="seg" data-seg="vista" role="group" aria-label="Tabla">
+        <button type="button" data-val="anios" class="on">Por años</button>
+        <button type="button" data-val="meses">Por meses</button>
+      </div>
+      <div class="tabla-scroll alta"><table id="tabla"></table></div>
+    </details>
+  </section>
+
+  <section class="tarjeta">
+    <h2>Todo lo que pagas por la casa</h2>
+    <p class="sub peque" id="totalTxt"></p>
+    <div class="tabla-scroll"><table class="desglose" id="total"></table></div>
+  </section>
 
   <section class="tarjeta">
     <h2>Fijo, variable o mixto</h2>
@@ -152,27 +182,10 @@
   </section>
 
   <section class="tarjeta">
-    <h2>Lo que pagas cada año</h2>
-    <svg id="grafica" viewBox="0 0 700 260" role="img" aria-label="Capital e intereses pagados cada año"></svg>
-    <div class="leyenda-graf">
-      <span><i style="background:var(--capital)"></i>Capital</span><span><i style="background:var(--interes)"></i>Intereses</span><span id="legExtra" hidden><i style="background:var(--extra)"></i>Amortizado aparte</span>
-    </div>
-    <details class="mas">
-      <summary>Tabla año a año</summary>
-      <div class="tabla-scroll"><table id="tabla"></table></div>
-    </details>
-  </section>
-
-  <section class="tarjeta">
     <h2>Cuánto te puedes permitir</h2>
     <p class="sub peque">Con tus ahorros y tus ingresos, entrada del 20 % y una cuota que no pase del 35 % de lo que ganas.</p>
     <div class="grande medio" id="max">–</div>
     <p class="sub" id="maxTxt"></p>
-  </section>
-
-  <section class="tarjeta">
-    <h2>Coste total</h2>
-    <div class="tabla-scroll"><table id="total"></table></div>
   </section>
 
   <section class="texto">
@@ -183,9 +196,10 @@
     <p>Es una estimación orientativa, no una oferta ni un consejo financiero. La FEIN que te dé el banco es la que manda.</p>
   </section>
 </main>
+<a class="pegajoso" id="pegajoso" href="#desglose"><span>Cada mes <b id="pegMes">–</b></span><span>Al comprar <b id="pegFirma">–</b></span></a>
 <footer>Hecho por adrianezd. Lo que escribes se queda en tu móvil.</footer>
 <section class="seo-faq"><h2>Preguntas frecuentes</h2><details><summary>¿Cuánto dinero necesito ahorrado para comprar casa?</summary><p>Normalmente el 20 % del precio de entrada, porque los bancos financian hasta el 80 %, más entre un 8 y un 12 % en impuestos y gastos de la compra.</p></details><details><summary>¿De dónde sale el euríbor?</summary><p>El valor diario se toma de euribor-rates.eu y la media mensual, que es la que usan las hipotecas al revisarse, del Banco Central Europeo. Se actualiza cada día laborable.</p></details><details><summary>¿Qué gastos paga el banco?</summary><p>Desde la ley hipotecaria de 2019 el banco paga la notaría, el registro y la gestoría de la hipoteca y el impuesto de actos jurídicos documentados de la hipoteca. Tú pagas la tasación y los gastos de la compraventa.</p></details></section>
 <nav class="seo-red">Más webs gratis: <a href="https://adrianezd.github.io/portal/">Todas</a> · <a href="https://adrianezd.github.io/alquilar-o-comprar/">Alquilar o comprar</a> · <a href="https://adrianezd.github.io/sueldo-neto/">Sueldo neto</a> · <a href="https://adrianezd.github.io/precio-luz-hoy/">Precio de la luz</a> · <a href="https://adrianezd.github.io/proyecciones-vivienda/">Precio de la vivienda</a> · <a href="https://adrianezd.github.io/calendario-laboral/">Calendario laboral</a></nav>
-<script src="script.js?v=202611022100"></script>
+<script src="script.js?v=202611031000"></script>
 </body>
 </html>
